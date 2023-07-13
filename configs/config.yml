@@ -7,6 +7,10 @@ db:
   username: "postgres"
   dbname: "postgres"
   sslmode: "disable"
+  driver: "postgres"
 kafka:
   address: "localhost:29092"
   topic: "topicauth"
+auth:
+  salt: "nwueewui3212wlwo"
+  jwtKey: "mysecretkey"
