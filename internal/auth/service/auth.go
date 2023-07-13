@@ -1,37 +1,38 @@
 package service
 
 import (
-	repository "auth/internal/auth/repository"
+	"auth/internal/auth/types"
 	"context"
 	"crypto/sha1"
 	"fmt"
 )
 
-const salt = "nwueewui3212wlwo"
-
-type AuthMethods interface {
-	CreateUser(ctx context.Context, user repository.User) (int, error)
-	GetUser(ctx context.Context, username string) (*repository.User, error)
+// там где используется интерфейс там и используется.
+// интерфейс репозитория
+type Irepository interface {
+	CreateUser(ctx context.Context, user, password string) (int, error)
+	GetUser(ctx context.Context, username string) (*types.User, error)
 }
 
 type AuthService struct {
-	repository *repository.AuthRepostitory
+	repository Irepository
+	salt       string
 }
 
-func NewAuthService(repository *repository.AuthRepostitory) *AuthService {
-	return &AuthService{repository: repository}
+func NewAuthService(repository Irepository, salt string) *AuthService {
+	return &AuthService{repository: repository, salt: salt}
 }
 
-func (a *AuthService) CreateUser(ctx context.Context, user repository.User) (int, error) {
-	password := GeneratePasswordHash(user.Password)
+func (a *AuthService) CreateUser(ctx context.Context, user types.User) (int, error) {
+	password := GeneratePasswordHash(user.Password, a.salt)
 	return a.repository.CreateUser(ctx, user.Username, password)
 }
 
-func (a *AuthService) GetUser(ctx context.Context, username string) (*repository.User, error) {
+func (a *AuthService) GetUser(ctx context.Context, username string) (*types.User, error) {
 	return a.repository.GetUser(ctx, username)
 }
 
-func GeneratePasswordHash(password string) string {
+func GeneratePasswordHash(password string, salt string) string {
 	hash := sha1.New()
 	hash.Write([]byte(password))
 	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))

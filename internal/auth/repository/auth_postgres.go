@@ -1,27 +1,22 @@
 package repository
 
 import (
+	"auth/internal/auth/types"
 	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 )
 
-type AuthDbManipulation interface {
-	CreateUser(ctx context.Context, username, password string) (int, error)
-	GetUser(ctx context.Context, username string) (*User, error)
-}
-
 type AuthRepostitory struct {
 	db *sqlx.DB
-	AuthDbManipulation
 }
 
 func NewAuthService(db *sqlx.DB) *AuthRepostitory {
 	return &AuthRepostitory{db: db}
 }
 
-func (a *AuthRepostitory) GetUser(ctx context.Context, username string) (*User, error) {
-	var userData User
+func (a *AuthRepostitory) GetUser(ctx context.Context, username string) (*types.User, error) {
+	var userData types.User
 	query := fmt.Sprintf(`
 SELECT u.id,u.username,u.password
     FROM user_auth u 
@@ -35,7 +30,7 @@ WHERE username=$1
 }
 
 func (a *AuthRepostitory) CreateUser(ctx context.Context, username, password string) (idUser int, err error) {
-	userRegistration := Registrator{username, password}
+	userRegistration := types.Registrator{username, password}
 	query := fmt.Sprintf(`
 INSERT into 
     user_auth (username, password)

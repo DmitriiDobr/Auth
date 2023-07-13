@@ -2,19 +2,33 @@ package main
 
 import (
 	"auth/internal/auth/handler"
-	repository "auth/internal/auth/repository"
+	"auth/internal/auth/repository"
 	"auth/internal/auth/service"
 	"fmt"
 	kafkaNotification "github.com/DmitriiDobr/kafkaNotification/pkg"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 )
 
 func main() {
 	app := fiber.New()
-	fmt.Println("Staring server...")
+	db, clientKafka, salt, jwtKey, err := run()
+	repo := repository.NewAuthService(db)
+	authService := service.NewAuthService(repo, salt)
+	handlerAuth := handler.NewHandler(authService, clientKafka, salt, jwtKey)
+	handlerAuth.RegisterHandlers(app)
+	port := viper.GetString("port")
+	err = app.Listen(port)
+	if err != nil {
+		panic(fmt.Sprintf("Server Listener does not work with port %s", port))
+	}
+
+}
+
+func run() (*sqlx.DB, *kafkaNotification.Client, string, string, error) {
 	if err := initConfig(); err != nil {
-		fmt.Println("Ошибка при инициализации!")
+		panic("Ошибка при инициализации!")
 	}
 	configDB := repository.Config{
 		Host:     viper.GetString("db.host"),
@@ -30,22 +44,18 @@ func main() {
 		Topic:   viper.GetString("kafka.topic"),
 		Address: address,
 	}
+	salt := viper.GetString("auth.salt")
+	jwtKey := viper.GetString("auth.jwtKey")
 
 	clientKafka, err := kafkaNotification.New(&configKafka)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, nil, "", "", err
 	}
-	db, _ := configDB.InitDb()
-	repo := repository.NewAuthService(db)
-	authService := service.NewAuthService(repo)
-	handlerAuth := handler.NewHandler(authService, clientKafka)
-	handlerAuth.RegisterHandlers(app)
-	err = app.Listen(viper.GetString("port"))
+	db, err := configDB.InitDb()
 	if err != nil {
-		fmt.Println("nanan")
-		return
+		return nil, nil, "", "", err
 	}
+	return db, clientKafka, salt, jwtKey, nil
 
 }
 

@@ -10,3 +10,6 @@ db:
 kafka:
   address: "localhost:29092"
   topic: "topicauth"
+auth:
+  salt: "nwueewui3212wlwo"
+  jwtKey: "my_secret_key"

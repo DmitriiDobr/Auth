@@ -1,21 +1,28 @@
 package handler
 
 import (
-	"auth/internal/auth/service"
-	"fmt"
+	"auth/internal/auth/types"
+	"context"
 	kafkaNotification "github.com/DmitriiDobr/kafkaNotification/pkg"
 	jwt "github.com/LdDl/fiber-jwt/v2"
 	"github.com/gofiber/fiber/v2"
 )
 
+type Iservice interface {
+	CreateUser(ctx context.Context, user types.User) (int, error)
+	GetUser(ctx context.Context, username string) (*types.User, error)
+}
+
 type Handler struct {
-	service     *service.AuthService
+	service     Iservice
+	salt        string
+	jwtKey      string
 	jwtBus      *jwt.FiberJWTMiddleware
 	kafkaClient *kafkaNotification.Client
 }
 
-func NewHandler(service *service.AuthService, kafkaClient *kafkaNotification.Client) *Handler {
-	return &Handler{service: service, kafkaClient: kafkaClient}
+func NewHandler(service Iservice, kafkaClient *kafkaNotification.Client, salt, jwtKey string) *Handler {
+	return &Handler{service: service, kafkaClient: kafkaClient, salt: salt, jwtKey: jwtKey}
 }
 
 func (h *Handler) RegisterHandlers(app *fiber.App) {
@@ -30,7 +37,7 @@ func (h *Handler) RegisterHandlers(app *fiber.App) {
 
 func accessMiddleware(c *fiber.Ctx) error {
 	accessToken := c.Cookies("access_token", "unauthorized")
-	fmt.Println(accessToken)
+	//fmt.Println(accessToken)
 	if accessToken == "unauthorized" {
 		// Посредник прерывает цепочку обработки запроса.
 		return c.SendStatus(fiber.StatusUnauthorized)

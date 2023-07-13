@@ -1,4 +1,4 @@
-package repository
+package types
 
 import jwt "github.com/golang-jwt/jwt/v4"
 
